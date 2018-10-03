@@ -11,7 +11,7 @@ type State = {
   sortOption: string
 };
 
-const getIcon = type => {
+const getIcon = (type: string) => {
   const options = {
     "n/a": "fa fa-android",
     male: "fa fa-user-circle-o",
@@ -22,15 +22,17 @@ const getIcon = type => {
   return options[type] || options.default;
 };
 
-const rotate360 = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-`;
+const request = (query?: string, cb: Object => void): void => {
+  return fetch(`https://swapi.co/api/people/?search=${query}`).then(res =>
+    res.json().then(json => {
+      if (!res.ok) {
+        cb({ hasError: true, isLoaded: true });
+        return Promise.reject(json);
+      }
+      return cb({ people: json.results, isLoaded: true });
+    })
+  );
+};
 
 class App extends React.Component<void, State> {
   state = {
@@ -41,32 +43,14 @@ class App extends React.Component<void, State> {
     sortOption: ""
   };
   componentDidMount() {
-    fetch("https://swapi.co/api/people/").then(res =>
-      res.json().then(json => {
-        if (!res.ok) {
-          this.setState({ hasError: true, isLoaded: true });
-          return Promise.reject(json);
-        }
-        return this.setState({ people: json.results, isLoaded: true });
-      })
-    );
+    return request("", data => this.setState(data));
   }
   handleSearch = () => {
     this.setState({ isLoaded: false, sortOption: "" }, () => {
-      return fetch(
-        `https://swapi.co/api/people/?search=${this.state.searchValue}`
-      ).then(res =>
-        res.json().then(json => {
-          if (!res.ok) {
-            this.setState({ hasError: true, isLoaded: true });
-            return Promise.reject(json);
-          }
-          return this.setState({ people: json.results, isLoaded: true });
-        })
-      );
+      return request(this.state.searchValue, data => this.setState(data));
     });
   };
-  handleSort = ({ target: { value } }) => {
+  handleSort = ({ target: { value } }: { target: { value: string } }) => {
     if (value === "A to Z") {
       return this.setState(state => ({
         people: state.people.sort((a, b) => {
@@ -220,6 +204,16 @@ const BoldBullet = styled(Bold)`
 
 const SpaceBetween = styled(Flex)`
   justify-content: space-between;
+`;
+
+const rotate360 = keyframes`
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 `;
 
 const Loading = styled.i`
